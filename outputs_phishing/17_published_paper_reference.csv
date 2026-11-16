@@ -1,0 +1,2 @@
+Source,Model,Accuracy,F1_phishing,Comparability
+"Alenezi & Alenezi (2026), Information 17(5), 401",Random Forest,0.9333,0.9375,Reference only: different experimental setup / positive-class definition may differ

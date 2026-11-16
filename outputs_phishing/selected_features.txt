@@ -1,0 +1,15 @@
+URLSimilarityIndex
+NoOfExternalRef
+LineOfCode
+NoOfSelfRef
+NoOfImage
+NoOfJS
+NoOfCSS
+HasDescription
+IsHTTPS
+HasSocialNet
+HasCopyrightInfo
+LargestLineLength
+NoOfDegitsInURL
+NoOfOtherSpecialCharsInURL
+IsResponsive
