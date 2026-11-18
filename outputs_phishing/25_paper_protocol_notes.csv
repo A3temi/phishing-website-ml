@@ -1,0 +1,7 @@
+Setting,Paper_statement,Implemented
+Dataset rows,"235,795 rows","235,795 original rows; no URL deduplication"
+Features,54 features; categorical fields encoded,50 numeric predictors; exact categorical encoding not specified in paper
+Split,Stratified 80/20,"Stratified 80/20, random_state=42"
+Cross-validation,5-fold CV,Not sufficient to reproduce exact final model because the paper omits the search grid and seed
+Test size,"Implied by 80/20: approximately 47,159 rows","47,159 rows"
+Published confusion matrices,Matrices contain 120 observations,Cannot select the same 120 observations because the paper does not identify them

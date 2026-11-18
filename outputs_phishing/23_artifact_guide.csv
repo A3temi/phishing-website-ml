@@ -20,3 +20,4 @@ Artifact,Report_section,Use
 20_improvement_comparison.csv / 21_improvement_comparison.png,9.4 Improvement comparison,Required five-row comparison table plus held-out error figure
 21_improvement_error_counts.csv,9.4 Improvement comparison,Exact false-positive and false-negative counts
 22_paper_comparison.csv,10 Comparison with published paper,Paper versus reproduced metrics
+24_paper_protocol_reproduction.csv / 25_paper_protocol_notes.csv,10 Comparison with published paper / 11 Discussion,Closest executable paper-protocol result and reproducibility limitations

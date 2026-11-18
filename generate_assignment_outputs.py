@@ -504,6 +504,71 @@ def curate(namespace):
     ])
     paper_comparison.to_csv(OUTPUT_DIR / "22_paper_comparison.csv", index=False)
 
+    # Paper-protocol reproduction audit. The paper says to use the original
+    # dataset, an 80/20 stratified split, categorical encoding, and 5-fold CV,
+    # but it does not publish the seed, exact encoding, hyperparameter grid, or
+    # the 120-row test selection implied by its confusion matrices. This is the
+    # closest executable protocol using the original rows and all available
+    # numeric predictors, without the project's duplicate-URL removal.
+    paper_df = raw.copy()
+    paper_label_column = [c for c in paper_df.columns if str(c).strip().lower() == "label"][0]
+    paper_y = (pd.to_numeric(paper_df[paper_label_column], errors="raise") == 0).astype(int)
+    paper_excluded = ["FILENAME", "URL", "Domain", "TLD", "Title", paper_label_column]
+    paper_numeric = paper_df.drop(columns=[c for c in paper_excluded if c in paper_df.columns])
+    paper_numeric = paper_numeric.apply(pd.to_numeric, errors="coerce").replace([np.inf, -np.inf], np.nan).astype("float32")
+    paper_X_train, paper_X_test, paper_y_train, paper_y_test = namespace["train_test_split"](
+        paper_numeric, paper_y, test_size=0.20, stratify=paper_y, random_state=RANDOM_STATE,
+    )
+    paper_rf = namespace["Pipeline"]([
+        ("imputer", namespace["SimpleImputer"](strategy="median")),
+        ("classifier", namespace["RandomForestClassifier"](
+            n_estimators=100, random_state=RANDOM_STATE, n_jobs=-1,
+        )),
+    ])
+    paper_lr = namespace["Pipeline"]([
+        ("imputer", namespace["SimpleImputer"](strategy="median")),
+        ("scaler", namespace["StandardScaler"]()),
+        ("classifier", namespace["LogisticRegression"](
+            max_iter=1200, random_state=RANDOM_STATE,
+        )),
+    ])
+    paper_rf.fit(paper_X_train, paper_y_train)
+    paper_lr.fit(paper_X_train, paper_y_train)
+    paper_rf_result = evaluate_model(
+        "Random Forest (closest paper protocol)", paper_rf, paper_X_test, paper_y_test,
+    )[0]
+    paper_lr_result = evaluate_model(
+        "Logistic Regression (closest paper protocol)", paper_lr, paper_X_test, paper_y_test,
+    )[0]
+    paper_protocol = pd.DataFrame([
+        {
+            "Model": "Random Forest",
+            "Paper_accuracy": 0.9333,
+            "Our_closest_protocol_accuracy": paper_rf_result["Accuracy"],
+            "Paper_F1": 0.9375,
+            "Our_closest_protocol_F1": paper_rf_result["F1_phishing"],
+            "Our_test_rows": len(paper_y_test),
+        },
+        {
+            "Model": "Logistic Regression",
+            "Paper_accuracy": 0.6583,
+            "Our_closest_protocol_accuracy": paper_lr_result["Accuracy"],
+            "Paper_F1": 0.7172,
+            "Our_closest_protocol_F1": paper_lr_result["F1_phishing"],
+            "Our_test_rows": len(paper_y_test),
+        },
+    ])
+    paper_protocol.to_csv(OUTPUT_DIR / "24_paper_protocol_reproduction.csv", index=False)
+    paper_protocol_notes = pd.DataFrame([
+        {"Setting": "Dataset rows", "Paper_statement": "235,795 rows", "Implemented": "235,795 original rows; no URL deduplication"},
+        {"Setting": "Features", "Paper_statement": "54 features; categorical fields encoded", "Implemented": "50 numeric predictors; exact categorical encoding not specified in paper"},
+        {"Setting": "Split", "Paper_statement": "Stratified 80/20", "Implemented": "Stratified 80/20, random_state=42"},
+        {"Setting": "Cross-validation", "Paper_statement": "5-fold CV", "Implemented": "Not sufficient to reproduce exact final model because the paper omits the search grid and seed"},
+        {"Setting": "Test size", "Paper_statement": "Implied by 80/20: approximately 47,159 rows", "Implemented": "47,159 rows"},
+        {"Setting": "Published confusion matrices", "Paper_statement": "Matrices contain 120 observations", "Implemented": "Cannot select the same 120 observations because the paper does not identify them"},
+    ])
+    paper_protocol_notes.to_csv(OUTPUT_DIR / "25_paper_protocol_notes.csv", index=False)
+
     artifact_guide = pd.DataFrame([
         {"Artifact": "01_dataset_summary.csv", "Report_section": "4.1 Dataset acquisition", "Use": "Dataset size, labels, and cleaning counts"},
         {"Artifact": "02_descriptive_statistics.csv", "Report_section": "5.1 Descriptive statistics", "Use": "Count, mean, standard deviation, minimum, quartiles, and maximum"},
@@ -526,6 +591,7 @@ def curate(namespace):
         {"Artifact": "20_improvement_comparison.csv / 21_improvement_comparison.png", "Report_section": "9.4 Improvement comparison", "Use": "Required five-row comparison table plus held-out error figure"},
         {"Artifact": "21_improvement_error_counts.csv", "Report_section": "9.4 Improvement comparison", "Use": "Exact false-positive and false-negative counts"},
         {"Artifact": "22_paper_comparison.csv", "Report_section": "10 Comparison with published paper", "Use": "Paper versus reproduced metrics"},
+        {"Artifact": "24_paper_protocol_reproduction.csv / 25_paper_protocol_notes.csv", "Report_section": "10 Comparison with published paper / 11 Discussion", "Use": "Closest executable paper-protocol result and reproducibility limitations"},
     ])
     artifact_guide.to_csv(OUTPUT_DIR / "23_artifact_guide.csv", index=False)
     (OUTPUT_DIR / "README.md").write_text(
