@@ -1,6 +1,6 @@
 Model_version,Features,CV_used,Tuning_used,Accuracy,F1_phishing,Precision_phishing,Recall_phishing,ROC_AUC_phishing,Specificity_legitimate,False_positive,False_negative
-RF baseline,All 50 numeric features,No,No,0.9999575137018312,0.9999502561806696,1.0,0.9999005173099881,0.9999999999999999,1.0,0.0,2.0
+RF baseline,All 50 numeric features,No,No,0.9999575137018312,0.9999502561806696,1.0,0.9999005173099881,1.0,1.0,0.0,2.0
 RF with CV,All 50 numeric features,Yes,No,0.9999575137018312,0.9999502561806696,1.0,0.9999005173099881,1.0,1.0,0.0,2.0
 Tuned RF,All 50 numeric features,Yes,Yes,1.0,1.0,1.0,1.0,1.0,1.0,0.0,0.0
 RF selected features,Top 15 features,Yes,Yes,1.0,1.0,1.0,1.0,1.0,1.0,0.0,0.0
-RF without similarity feature,49 reduced features,Yes,Yes,0.9997663253600714,0.9997264294063518,0.9997015667744342,0.9997512932749701,0.999998466446853,0.9997775305895439,6.0,5.0
+RF URL-only features,18 URL structural features,No,No,0.9973233632153631,0.9968592651677551,0.9991006295593085,0.9946279347393554,0.9986284778550868,0.9993325917686318,18.0,108.0

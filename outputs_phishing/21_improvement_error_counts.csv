@@ -3,4 +3,4 @@ RF baseline,0.0,2.0
 RF with CV,0.0,2.0
 Tuned RF,0.0,0.0
 RF selected features,0.0,0.0
-RF without similarity feature,6.0,5.0
+RF URL-only features,18.0,108.0

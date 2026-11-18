@@ -1,3 +1,4 @@
-Model,Accuracy,Precision_phishing,Recall_phishing,F1_phishing,ROC_AUC_phishing,Specificity_legitimate,False_positive,False_negative,Predict_seconds
-Random Forest (without URLSimilarityIndex),0.9997663253600714,0.9997015667744342,0.9997512932749701,0.9997264294063518,0.999998466446853,0.9997775305895439,6,5,0.161
-Random Forest (without five proxy features),0.9998088116582402,0.9998507536938461,0.9997015519299642,0.9997761472453675,0.9999988417662341,0.999888765294772,3,6,0.116
+Feature_set,Model,Accuracy,Precision_phishing,Recall_phishing,F1_phishing,ROC_AUC_phishing,Specificity_legitimate,False_positive,False_negative,Predict_seconds
+49 features; URLSimilarityIndex removed,Random Forest (without URLSimilarityIndex),0.9997663253600714,0.9997015667744342,0.9997512932749701,0.9997264294063518,0.999998466446853,0.9997775305895439,6,5,0.104
+45 features; five proxy features removed,Random Forest (without five proxy features),0.9998088116582402,0.9998507536938461,0.9997015519299642,0.9997761472453675,0.9999988417662342,0.999888765294772,3,6,0.089
+18 URL structural features,Random Forest (URL-only structural features),0.9973233632153631,0.9991006295593085,0.9946279347393554,0.9968592651677551,0.9986284778550868,0.9993325917686318,18,108,0.076

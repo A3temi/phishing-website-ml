@@ -306,7 +306,28 @@ def curate(namespace):
         X_test[proxy_reduced_features], y_test,
     )[0]
 
-    reduced_results = pd.DataFrame([similarity_reduced_result, proxy_reduced_result])
+    # URL-only experiment: structural URL measurements only. This excludes
+    # similarity/probability scores, title matches, and webpage-content fields.
+    url_only_features = [
+        "URLLength", "DomainLength", "IsDomainIP", "TLDLength", "NoOfSubDomain",
+        "HasObfuscation", "NoOfObfuscatedChar", "ObfuscationRatio",
+        "NoOfLettersInURL", "LetterRatioInURL", "NoOfDegitsInURL", "DegitRatioInURL",
+        "NoOfEqualsInURL", "NoOfQMarkInURL", "NoOfAmpersandInURL",
+        "NoOfOtherSpecialCharsInURL", "SpacialCharRatioInURL", "IsHTTPS",
+    ]
+    url_only_features = [c for c in url_only_features if c in X_all.columns]
+    url_only_model = rf_pipeline()
+    url_only_model.fit(namespace["X_train"][url_only_features], namespace["y_train"])
+    url_only_result = evaluate_model(
+        "Random Forest (URL-only structural features)", url_only_model,
+        X_test[url_only_features], y_test,
+    )[0]
+
+    reduced_results = pd.DataFrame([
+        {"Feature_set": "49 features; URLSimilarityIndex removed", **similarity_reduced_result},
+        {"Feature_set": "45 features; five proxy features removed", **proxy_reduced_result},
+        {"Feature_set": f"{len(url_only_features)} URL structural features", **url_only_result},
+    ])
     reduced_results.to_csv(OUTPUT_DIR / "19_proxy_feature_ablation.csv", index=False)
     similarity_reduced_metrics = {
         key: similarity_reduced_result[key]
@@ -317,6 +338,13 @@ def curate(namespace):
     }
     proxy_reduced_metrics = {
         key: proxy_reduced_result[key]
+        for key in [
+            "Accuracy", "Precision_phishing", "Recall_phishing", "F1_phishing",
+            "ROC_AUC_phishing", "Specificity_legitimate", "False_positive", "False_negative",
+        ]
+    }
+    url_only_metrics = {
+        key: url_only_result[key]
         for key in [
             "Accuracy", "Precision_phishing", "Recall_phishing", "F1_phishing",
             "ROC_AUC_phishing", "Specificity_legitimate", "False_positive", "False_negative",
@@ -346,7 +374,7 @@ def curate(namespace):
         {"Model_version": "RF with CV", "Features": "All 50 numeric features", "CV_used": "Yes", "Tuning_used": "No", **{**cv_result, "Model": None}},
         {"Model_version": "Tuned RF", "Features": "All 50 numeric features", "CV_used": "Yes", "Tuning_used": "Yes", **metric_row("Random Forest (tuned)")},
         {"Model_version": "RF selected features", "Features": "Top 15 features", "CV_used": "Yes", "Tuning_used": "Yes", **metric_row("Random Forest (top 15 features)")},
-        {"Model_version": "RF without similarity feature", "Features": f"{len(similarity_reduced_features)} reduced features", "CV_used": "Yes", "Tuning_used": "Yes", **similarity_reduced_metrics},
+        {"Model_version": "RF URL-only features", "Features": f"{len(url_only_features)} URL structural features", "CV_used": "No", "Tuning_used": "No", **url_only_metrics},
     ])
     # Keep the six columns required by the assignment as the first columns,
     # while retaining the full metrics for transparent checking and discussion.
@@ -360,10 +388,11 @@ def curate(namespace):
     error_table = improvement_table[["Model_version", "False_positive", "False_negative"]].copy()
     error_table.to_csv(OUTPUT_DIR / "21_improvement_error_counts.csv", index=False)
     fig, axes = plt.subplots(1, 2, figsize=(12, 4.5))
+    score_min = max(0.0, float(improvement_table[["Accuracy", "F1_phishing"]].min().min()) - 0.001)
     improvement_table.set_index("Model_version")[["Accuracy", "F1_phishing"]].plot(
-        kind="bar", ax=axes[0], ylim=(0.999, 1.0001), rot=20,
+        kind="bar", ax=axes[0], ylim=(score_min, 1.0001), rot=20,
     )
-    axes[0].set_title("Scores near the benchmark ceiling")
+    axes[0].set_title("Scores across feature sets")
     axes[0].set_ylabel("Score")
     error_table.set_index("Model_version")[["False_positive", "False_negative"]].plot(
         kind="bar", ax=axes[1], rot=20,
@@ -414,7 +443,7 @@ def curate(namespace):
         {"Artifact": "15_cross_validation_results.csv", "Report_section": "9.1 Cross-validation", "Use": "Fold scores, mean, and standard deviation"},
         {"Artifact": "16_hyperparameter_search_results.csv", "Report_section": "9.2 Hyperparameter tuning", "Use": "Search configurations and scores"},
         {"Artifact": "17_feature_importance.csv / 18_feature_importance.png", "Report_section": "9.3 Feature selection", "Use": "Top-feature ranking"},
-        {"Artifact": "19_proxy_feature_ablation.csv", "Report_section": "9.3 Feature selection / 11 Discussion", "Use": "Full versus reduced feature set"},
+        {"Artifact": "19_proxy_feature_ablation.csv", "Report_section": "9.3 Feature selection / 11 Discussion", "Use": "Single-feature, five-proxy, and URL-only ablation results"},
         {"Artifact": "20_improvement_comparison.csv / 21_improvement_comparison.png", "Report_section": "9.4 Improvement comparison", "Use": "Required five-row comparison table plus held-out error figure"},
         {"Artifact": "21_improvement_error_counts.csv", "Report_section": "9.4 Improvement comparison", "Use": "Exact false-positive and false-negative counts"},
         {"Artifact": "22_paper_comparison.csv", "Report_section": "10 Comparison with published paper", "Use": "Paper versus reproduced metrics"},
