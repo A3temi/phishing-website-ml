@@ -1,5 +1,6 @@
 Model_version,False_positive,False_negative
 RF baseline,0.0,2.0
-RF tuned,0.0,0.0
-RF top 15,0.0,0.0
-RF without proxy features,3.0,6.0
+RF with CV,0.0,2.0
+Tuned RF,0.0,0.0
+RF selected features,0.0,0.0
+RF without similarity feature,6.0,5.0

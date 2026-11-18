@@ -1,0 +1,5 @@
+Model,Class,Precision,Recall,F1,Support
+Logistic Regression (baseline),Legitimate,0.9997034620802135,1.0,0.9998517090531623,26970
+Logistic Regression (baseline),Phishing,1.0,0.9996020692399522,0.9998009950248756,20104
+Random Forest (baseline),Legitimate,0.9999258490286222,1.0,0.9999629231396685,26970
+Random Forest (baseline),Phishing,1.0,0.9999005173099881,0.9999502561806696,20104

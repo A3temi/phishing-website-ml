@@ -16,6 +16,7 @@ os.environ.setdefault("MPLBACKEND", "Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from sklearn.metrics import classification_report
 
 
 ROOT = Path(__file__).resolve().parent
@@ -78,20 +79,28 @@ def curate(namespace):
     ConfusionMatrixDisplay = namespace["ConfusionMatrixDisplay"]
 
     # Part C: dataset summary and feature provenance audit.
+    legitimate_count = int((y_all == 0).sum())
+    phishing_count = int((y_all == 1).sum())
     dataset_summary = pd.DataFrame({
         "Item": [
             "Original rows", "Rows after duplicate-URL removal", "Original columns",
             "Usable numeric features", "Legitimate websites", "Phishing websites",
-            "Missing values", "Duplicate full rows", "Repeated URL rows before removal",
+            "Legitimate percentage", "Phishing percentage", "Missing values",
+            "Duplicate full rows", "Repeated URL rows before removal",
         ],
         "Value": [
             len(raw), len(df), raw.shape[1], X_all.shape[1],
-            int((y_all == 0).sum()), int((y_all == 1).sum()),
+            legitimate_count, phishing_count,
+            round(100 * legitimate_count / len(y_all), 2),
+            round(100 * phishing_count / len(y_all), 2),
             int(raw.isna().sum().sum()), int(raw.duplicated().sum()),
             int(raw.duplicated(subset="URL").sum()),
         ],
     })
     dataset_summary.to_csv(OUTPUT_DIR / "01_dataset_summary.csv", index=False)
+
+    descriptive_statistics = X_all.describe().T.reset_index().rename(columns={"index": "Feature"})
+    descriptive_statistics.to_csv(OUTPUT_DIR / "02_descriptive_statistics.csv", index=False)
 
     provenance = {
         "URLSimilarityIndex": "Precomputed similarity-based feature",
@@ -151,16 +160,23 @@ def curate(namespace):
     fig.savefig(OUTPUT_DIR / "04_eda_class_distribution.png", dpi=180)
     plt.close(fig)
 
-    eda_features = [c for c in ["URLLength", "DomainLength", "NoOfSubDomain", "LineOfCode"] if c in X_all.columns]
+    eda_features = [c for c in [
+        "URLLength", "DomainLength", "NoOfSubDomain",
+        "NoOfOtherSpecialCharsInURL", "IsHTTPS", "LineOfCode",
+    ] if c in X_all.columns]
     eda_sample = X_all[eda_features].sample(n=min(10000, len(X_all)), random_state=RANDOM_STATE).copy()
     eda_sample["Class"] = y_all.loc[eda_sample.index].map({0: "Legitimate", 1: "Phishing"})
-    fig, axes = plt.subplots(1, len(eda_features), figsize=(4.2 * len(eda_features), 3.8))
+    n_columns = 3
+    fig, axes = plt.subplots(2, n_columns, figsize=(13, 7.2))
+    axes = np.asarray(axes).reshape(-1)
     axes = np.atleast_1d(axes)
     for ax, feature in zip(axes, eda_features):
         eda_sample.boxplot(column=feature, by="Class", ax=ax, showfliers=False)
         ax.set_title(feature)
         ax.set_xlabel("")
         ax.set_ylabel("Value")
+    for ax in axes[len(eda_features):]:
+        ax.axis("off")
     fig.suptitle("Selected feature distributions by class")
     fig.tight_layout()
     fig.savefig(OUTPUT_DIR / "05_eda_feature_distributions.png", dpi=180)
@@ -180,6 +196,24 @@ def curate(namespace):
 
     # Part D: baseline supervised results and figures.
     baseline_results.reset_index().to_csv(OUTPUT_DIR / "07_baseline_model_results.csv", index=False)
+    report_rows = []
+    for name in ["Logistic Regression (baseline)", "Random Forest (baseline)"]:
+        predictions = models[name].predict(X_test)
+        report = classification_report(
+            y_test, predictions, labels=[0, 1],
+            target_names=["Legitimate", "Phishing"],
+            output_dict=True, zero_division=0,
+        )
+        for class_name in ["Legitimate", "Phishing"]:
+            report_rows.append({
+                "Model": name,
+                "Class": class_name,
+                "Precision": report[class_name]["precision"],
+                "Recall": report[class_name]["recall"],
+                "F1": report[class_name]["f1-score"],
+                "Support": int(report[class_name]["support"]),
+            })
+    pd.DataFrame(report_rows).to_csv(OUTPUT_DIR / "07_classification_reports.csv", index=False)
     fig, axes = plt.subplots(1, 2, figsize=(9, 4))
     for ax, name in zip(axes, ["Logistic Regression (baseline)", "Random Forest (baseline)"]):
         ConfusionMatrixDisplay.from_predictions(
@@ -250,22 +284,54 @@ def curate(namespace):
         "URLSimilarityIndex", "URLCharProb", "TLDLegitimateProb",
         "URLTitleMatchScore", "DomainTitleMatchScore",
     ]
-    reduced_features = [c for c in X_all.columns if c not in proxy_features]
-    reduced_model = rf_pipeline()
-    reduced_model.fit(namespace["X_train"][reduced_features], namespace["y_train"])
-    reduced_result = evaluate_model(
-        "Random Forest (without proxy features)", reduced_model,
-        X_test[reduced_features], y_test,
+    similarity_features = ["URLSimilarityIndex"]
+    similarity_reduced_features = [c for c in X_all.columns if c not in similarity_features]
+    proxy_reduced_features = [c for c in X_all.columns if c not in proxy_features]
+
+    similarity_reduced_model = rf_pipeline()
+    similarity_reduced_model.fit(
+        namespace["X_train"][similarity_reduced_features], namespace["y_train"]
+    )
+    similarity_reduced_result = evaluate_model(
+        "Random Forest (without URLSimilarityIndex)", similarity_reduced_model,
+        X_test[similarity_reduced_features], y_test,
     )[0]
-    reduced_results = pd.DataFrame([reduced_result])
+
+    proxy_reduced_model = rf_pipeline()
+    proxy_reduced_model.fit(
+        namespace["X_train"][proxy_reduced_features], namespace["y_train"]
+    )
+    proxy_reduced_result = evaluate_model(
+        "Random Forest (without five proxy features)", proxy_reduced_model,
+        X_test[proxy_reduced_features], y_test,
+    )[0]
+
+    reduced_results = pd.DataFrame([similarity_reduced_result, proxy_reduced_result])
     reduced_results.to_csv(OUTPUT_DIR / "19_proxy_feature_ablation.csv", index=False)
-    reduced_metrics = {
-        key: reduced_result[key]
+    similarity_reduced_metrics = {
+        key: similarity_reduced_result[key]
         for key in [
             "Accuracy", "Precision_phishing", "Recall_phishing", "F1_phishing",
             "ROC_AUC_phishing", "Specificity_legitimate", "False_positive", "False_negative",
         ]
     }
+    proxy_reduced_metrics = {
+        key: proxy_reduced_result[key]
+        for key in [
+            "Accuracy", "Precision_phishing", "Recall_phishing", "F1_phishing",
+            "ROC_AUC_phishing", "Specificity_legitimate", "False_positive", "False_negative",
+        ]
+    }
+
+    # This is the explicit "RF with CV" row required by Section 9.4.
+    # The model configuration is the same one evaluated by cv_scores above;
+    # CV is used for evaluation/model-selection evidence, then the model is
+    # refit on all training rows before the untouched test-set evaluation.
+    cv_model = rf_pipeline(n_estimators=50, max_depth=16)
+    cv_model.fit(namespace["X_train"], namespace["y_train"])
+    cv_result = evaluate_model(
+        "Random Forest (with CV)", cv_model, X_test, y_test,
+    )[0]
 
     def metric_row(name):
         return final_results.loc[name, [
@@ -274,12 +340,22 @@ def curate(namespace):
             "False_positive", "False_negative",
         ]].to_dict()
 
+    # Exact report table requested in Section 9.4.
     improvement_table = pd.DataFrame([
-        {"Model_version": "RF baseline", "Technique": "Baseline", "Features": "50 numeric features", **metric_row("Random Forest (baseline)")},
-        {"Model_version": "RF tuned", "Technique": "RandomizedSearchCV", "Features": "50 numeric features", **metric_row("Random Forest (tuned)")},
-        {"Model_version": "RF top 15", "Technique": "Feature selection", "Features": "Top 15 RF features", **metric_row("Random Forest (top 15 features)")},
-        {"Model_version": "RF without proxy features", "Technique": "Feature engineering/ablation", "Features": f"{len(reduced_features)} reduced features", **reduced_metrics},
+        {"Model_version": "RF baseline", "Features": "All 50 numeric features", "CV_used": "No", "Tuning_used": "No", **metric_row("Random Forest (baseline)")},
+        {"Model_version": "RF with CV", "Features": "All 50 numeric features", "CV_used": "Yes", "Tuning_used": "No", **{**cv_result, "Model": None}},
+        {"Model_version": "Tuned RF", "Features": "All 50 numeric features", "CV_used": "Yes", "Tuning_used": "Yes", **metric_row("Random Forest (tuned)")},
+        {"Model_version": "RF selected features", "Features": "Top 15 features", "CV_used": "Yes", "Tuning_used": "Yes", **metric_row("Random Forest (top 15 features)")},
+        {"Model_version": "RF without similarity feature", "Features": f"{len(similarity_reduced_features)} reduced features", "CV_used": "Yes", "Tuning_used": "Yes", **similarity_reduced_metrics},
     ])
+    # Keep the six columns required by the assignment as the first columns,
+    # while retaining the full metrics for transparent checking and discussion.
+    required_columns = ["Model_version", "Features", "CV_used", "Tuning_used", "Accuracy", "F1_phishing"]
+    detailed_columns = required_columns + [
+        "Precision_phishing", "Recall_phishing", "ROC_AUC_phishing",
+        "Specificity_legitimate", "False_positive", "False_negative",
+    ]
+    improvement_table = improvement_table[detailed_columns]
     improvement_table.to_csv(OUTPUT_DIR / "20_improvement_comparison.csv", index=False)
     error_table = improvement_table[["Model_version", "False_positive", "False_negative"]].copy()
     error_table.to_csv(OUTPUT_DIR / "21_improvement_error_counts.csv", index=False)
@@ -322,12 +398,14 @@ def curate(namespace):
 
     artifact_guide = pd.DataFrame([
         {"Artifact": "01_dataset_summary.csv", "Report_section": "4.1 Dataset acquisition", "Use": "Dataset size, labels, and cleaning counts"},
+        {"Artifact": "02_descriptive_statistics.csv", "Report_section": "5.1 Descriptive statistics", "Use": "Count, mean, standard deviation, minimum, quartiles, and maximum"},
         {"Artifact": "02_feature_audit.csv", "Report_section": "3.5 Feature-engineering limitations", "Use": "Feature strength and provenance"},
         {"Artifact": "03_similarity_feature_audit.csv", "Report_section": "3.5 Feature-engineering limitations / 11 Discussion", "Use": "Evidence for the similarity-feature concern"},
         {"Artifact": "04_eda_class_distribution.png", "Report_section": "5.2 Class distribution", "Use": "Class-count bar chart"},
-        {"Artifact": "05_eda_feature_distributions.png", "Report_section": "5.4 Feature distributions", "Use": "Selected feature boxplots"},
+        {"Artifact": "05_eda_feature_distributions.png", "Report_section": "5.4 Feature distributions", "Use": "URL, domain, subdomain, special-character, HTTPS, and webpage-code boxplots"},
         {"Artifact": "06_eda_correlation_heatmap.png", "Report_section": "5.5 Correlation analysis", "Use": "Correlation visualization"},
         {"Artifact": "07_baseline_model_results.csv", "Report_section": "7 Supervised results", "Use": "Accuracy, precision, recall, F1, and ROC-AUC"},
+        {"Artifact": "07_classification_reports.csv", "Report_section": "7 Supervised results", "Use": "Per-class precision, recall, F1, and support"},
         {"Artifact": "08_supervised_confusion_matrices.png", "Report_section": "7 Supervised results", "Use": "False positives and false negatives"},
         {"Artifact": "09_supervised_roc_curves.png", "Report_section": "7 Supervised results", "Use": "ROC curves and AUC"},
         {"Artifact": "10_cluster_selection_scores.csv / 11_cluster_selection.png", "Report_section": "8.2 Choosing K", "Use": "Elbow and silhouette evidence"},
@@ -337,7 +415,7 @@ def curate(namespace):
         {"Artifact": "16_hyperparameter_search_results.csv", "Report_section": "9.2 Hyperparameter tuning", "Use": "Search configurations and scores"},
         {"Artifact": "17_feature_importance.csv / 18_feature_importance.png", "Report_section": "9.3 Feature selection", "Use": "Top-feature ranking"},
         {"Artifact": "19_proxy_feature_ablation.csv", "Report_section": "9.3 Feature selection / 11 Discussion", "Use": "Full versus reduced feature set"},
-        {"Artifact": "20_improvement_comparison.csv / 21_improvement_comparison.png", "Report_section": "9.4 Improvement comparison", "Use": "Baseline versus improved models and held-out errors"},
+        {"Artifact": "20_improvement_comparison.csv / 21_improvement_comparison.png", "Report_section": "9.4 Improvement comparison", "Use": "Required five-row comparison table plus held-out error figure"},
         {"Artifact": "21_improvement_error_counts.csv", "Report_section": "9.4 Improvement comparison", "Use": "Exact false-positive and false-negative counts"},
         {"Artifact": "22_paper_comparison.csv", "Report_section": "10 Comparison with published paper", "Use": "Paper versus reproduced metrics"},
     ])

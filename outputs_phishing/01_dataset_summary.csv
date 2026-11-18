@@ -1,10 +1,12 @@
 Item,Value
-Original rows,235795
-Rows after duplicate-URL removal,235370
-Original columns,56
-Usable numeric features,50
-Legitimate websites,134850
-Phishing websites,100520
-Missing values,0
-Duplicate full rows,0
-Repeated URL rows before removal,425
+Original rows,235795.0
+Rows after duplicate-URL removal,235370.0
+Original columns,56.0
+Usable numeric features,50.0
+Legitimate websites,134850.0
+Phishing websites,100520.0
+Legitimate percentage,57.29
+Phishing percentage,42.71
+Missing values,0.0
+Duplicate full rows,0.0
+Repeated URL rows before removal,425.0
