@@ -1,6 +1,6 @@
 Model_version,False_positive,False_negative
 RF baseline,0.0,2.0
-RF with CV,0.0,2.0
-Tuned RF,0.0,0.0
-RF selected features,0.0,0.0
-RF URL-only features,18.0,108.0
+RF URL-only baseline,18.0,108.0
+RF URL-only with CV,23.0,126.0
+Tuned RF URL-only,17.0,108.0
+RF without five proxy features,4.0,5.0

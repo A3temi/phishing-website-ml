@@ -266,11 +266,91 @@ def curate(namespace):
     plt.close(fig)
 
     # Part F: cross-validation, tuning, feature selection, and a proxy-feature ablation.
-    cv_table = pd.DataFrame({"Fold": np.arange(1, len(cv_scores) + 1), "F1_phishing": cv_scores})
-    cv_table.loc[len(cv_table)] = ["Mean", cv_scores.mean()]
-    cv_table.loc[len(cv_table)] = ["Std", cv_scores.std()]
-    cv_table.to_csv(OUTPUT_DIR / "15_cross_validation_results.csv", index=False)
-    pd.DataFrame(search.cv_results_).sort_values("rank_test_score").to_csv(OUTPUT_DIR / "16_hyperparameter_search_results.csv", index=False)
+    cross_val_score = namespace["cross_val_score"]
+    cv = namespace["cv"]
+    Xtune = namespace["Xtune"]
+    ytune = namespace["ytune"]
+    tuning_template = namespace["search"]
+    tuning_space = tuning_template.param_distributions
+    tuning_iterations = tuning_template.n_iter
+
+    # URL-only and five-proxy CV are calculated with the same folds and
+    # training-only subset as the full-feature CV experiment.
+    url_only_features = [
+        "URLLength", "DomainLength", "IsDomainIP", "TLDLength", "NoOfSubDomain",
+        "HasObfuscation", "NoOfObfuscatedChar", "ObfuscationRatio",
+        "NoOfLettersInURL", "LetterRatioInURL", "NoOfDegitsInURL", "DegitRatioInURL",
+        "NoOfEqualsInURL", "NoOfQMarkInURL", "NoOfAmpersandInURL",
+        "NoOfOtherSpecialCharsInURL", "SpacialCharRatioInURL", "IsHTTPS",
+    ]
+    url_only_features = [c for c in url_only_features if c in X_all.columns]
+    proxy_features = [
+        "URLSimilarityIndex", "URLCharProb", "TLDLegitimateProb",
+        "URLTitleMatchScore", "DomainTitleMatchScore",
+    ]
+    proxy_reduced_features = [c for c in X_all.columns if c not in proxy_features]
+
+    url_cv_scores = cross_val_score(
+        rf_pipeline(n_estimators=50, max_depth=16),
+        Xtune[url_only_features], ytune, cv=cv, scoring="f1", n_jobs=1,
+    )
+    proxy_cv_scores = cross_val_score(
+        rf_pipeline(n_estimators=50, max_depth=16),
+        Xtune[proxy_reduced_features], ytune, cv=cv, scoring="f1", n_jobs=1,
+    )
+
+    cv_rows = []
+    for feature_set, scores in [
+        ("All 50 features", cv_scores),
+        ("18 URL structural features", url_cv_scores),
+        ("45 features; five proxy features removed", proxy_cv_scores),
+    ]:
+        cv_rows.extend([
+            {"Feature_set": feature_set, "Fold": i, "F1_phishing": score}
+            for i, score in enumerate(scores, start=1)
+        ])
+        cv_rows.append({"Feature_set": feature_set, "Fold": "Mean", "F1_phishing": scores.mean()})
+        cv_rows.append({"Feature_set": feature_set, "Fold": "Std", "F1_phishing": scores.std()})
+    pd.DataFrame(cv_rows).to_csv(OUTPUT_DIR / "15_cross_validation_results.csv", index=False)
+
+    def tune_feature_set(features, feature_set_name):
+        feature_search = namespace["RandomizedSearchCV"](
+            estimator=rf_pipeline(),
+            param_distributions=tuning_space,
+            n_iter=tuning_iterations,
+            cv=cv,
+            scoring="f1",
+            random_state=RANDOM_STATE,
+            n_jobs=1,
+            verbose=0,
+            refit=True,
+        )
+        feature_search.fit(Xtune[features], ytune)
+        best_params = {
+            key.replace("classifier__", ""): value
+            for key, value in feature_search.best_params_.items()
+        }
+        model = rf_pipeline(**best_params)
+        model.fit(namespace["X_train"][features], namespace["y_train"])
+        result = evaluate_model(
+            f"Tuned RF ({feature_set_name})", model,
+            X_test[features], y_test,
+        )[0]
+        search_table = pd.DataFrame(feature_search.cv_results_).sort_values("rank_test_score")
+        search_table.insert(0, "Feature_set", feature_set_name)
+        return result, search_table
+
+    url_tuned_result, url_search_table = tune_feature_set(
+        url_only_features, "18 URL structural features",
+    )
+    proxy_tuned_result, proxy_search_table = tune_feature_set(
+        proxy_reduced_features, "45 features; five proxy features removed",
+    )
+    full_search_table = pd.DataFrame(search.cv_results_).sort_values("rank_test_score")
+    full_search_table.insert(0, "Feature_set", "All 50 features")
+    pd.concat([full_search_table, url_search_table, proxy_search_table], ignore_index=True).to_csv(
+        OUTPUT_DIR / "16_hyperparameter_search_results.csv", index=False,
+    )
     importance.reset_index(name="Importance").rename(columns={"index": "Feature"}).to_csv(OUTPUT_DIR / "17_feature_importance.csv", index=False)
     fig, ax = plt.subplots(figsize=(8, 6))
     importance.head(15).sort_values().plot(kind="barh", ax=ax)
@@ -280,13 +360,8 @@ def curate(namespace):
     fig.savefig(OUTPUT_DIR / "18_feature_importance.png", dpi=180)
     plt.close(fig)
 
-    proxy_features = [
-        "URLSimilarityIndex", "URLCharProb", "TLDLegitimateProb",
-        "URLTitleMatchScore", "DomainTitleMatchScore",
-    ]
     similarity_features = ["URLSimilarityIndex"]
     similarity_reduced_features = [c for c in X_all.columns if c not in similarity_features]
-    proxy_reduced_features = [c for c in X_all.columns if c not in proxy_features]
 
     similarity_reduced_model = rf_pipeline()
     similarity_reduced_model.fit(
@@ -306,16 +381,7 @@ def curate(namespace):
         X_test[proxy_reduced_features], y_test,
     )[0]
 
-    # URL-only experiment: structural URL measurements only. This excludes
-    # similarity/probability scores, title matches, and webpage-content fields.
-    url_only_features = [
-        "URLLength", "DomainLength", "IsDomainIP", "TLDLength", "NoOfSubDomain",
-        "HasObfuscation", "NoOfObfuscatedChar", "ObfuscationRatio",
-        "NoOfLettersInURL", "LetterRatioInURL", "NoOfDegitsInURL", "DegitRatioInURL",
-        "NoOfEqualsInURL", "NoOfQMarkInURL", "NoOfAmpersandInURL",
-        "NoOfOtherSpecialCharsInURL", "SpacialCharRatioInURL", "IsHTTPS",
-    ]
-    url_only_features = [c for c in url_only_features if c in X_all.columns]
+    # URL-only baseline: structural URL measurements only.
     url_only_model = rf_pipeline()
     url_only_model.fit(namespace["X_train"][url_only_features], namespace["y_train"])
     url_only_result = evaluate_model(
@@ -336,8 +402,8 @@ def curate(namespace):
             "ROC_AUC_phishing", "Specificity_legitimate", "False_positive", "False_negative",
         ]
     }
-    proxy_reduced_metrics = {
-        key: proxy_reduced_result[key]
+    proxy_tuned_metrics = {
+        key: proxy_tuned_result[key]
         for key in [
             "Accuracy", "Precision_phishing", "Recall_phishing", "F1_phishing",
             "ROC_AUC_phishing", "Specificity_legitimate", "False_positive", "False_negative",
@@ -351,15 +417,28 @@ def curate(namespace):
         ]
     }
 
-    # This is the explicit "RF with CV" row required by Section 9.4.
-    # The model configuration is the same one evaluated by cv_scores above;
-    # CV is used for evaluation/model-selection evidence, then the model is
-    # refit on all training rows before the untouched test-set evaluation.
-    cv_model = rf_pipeline(n_estimators=50, max_depth=16)
-    cv_model.fit(namespace["X_train"], namespace["y_train"])
-    cv_result = evaluate_model(
-        "Random Forest (with CV)", cv_model, X_test, y_test,
+    # URL-only CV row: use the same configuration evaluated by url_cv_scores,
+    # refit on all training rows, then evaluate once on the untouched test set.
+    url_cv_model = rf_pipeline(n_estimators=50, max_depth=16)
+    url_cv_model.fit(namespace["X_train"][url_only_features], namespace["y_train"])
+    url_cv_result = evaluate_model(
+        "RF URL-only with CV", url_cv_model,
+        X_test[url_only_features], y_test,
     )[0]
+    url_cv_metrics = {
+        key: url_cv_result[key]
+        for key in [
+            "Accuracy", "Precision_phishing", "Recall_phishing", "F1_phishing",
+            "ROC_AUC_phishing", "Specificity_legitimate", "False_positive", "False_negative",
+        ]
+    }
+    url_tuned_metrics = {
+        key: url_tuned_result[key]
+        for key in [
+            "Accuracy", "Precision_phishing", "Recall_phishing", "F1_phishing",
+            "ROC_AUC_phishing", "Specificity_legitimate", "False_positive", "False_negative",
+        ]
+    }
 
     def metric_row(name):
         return final_results.loc[name, [
@@ -371,10 +450,10 @@ def curate(namespace):
     # Exact report table requested in Section 9.4.
     improvement_table = pd.DataFrame([
         {"Model_version": "RF baseline", "Features": "All 50 numeric features", "CV_used": "No", "Tuning_used": "No", **metric_row("Random Forest (baseline)")},
-        {"Model_version": "RF with CV", "Features": "All 50 numeric features", "CV_used": "Yes", "Tuning_used": "No", **{**cv_result, "Model": None}},
-        {"Model_version": "Tuned RF", "Features": "All 50 numeric features", "CV_used": "Yes", "Tuning_used": "Yes", **metric_row("Random Forest (tuned)")},
-        {"Model_version": "RF selected features", "Features": "Top 15 features", "CV_used": "Yes", "Tuning_used": "Yes", **metric_row("Random Forest (top 15 features)")},
-        {"Model_version": "RF URL-only features", "Features": f"{len(url_only_features)} URL structural features", "CV_used": "No", "Tuning_used": "No", **url_only_metrics},
+        {"Model_version": "RF URL-only baseline", "Features": f"{len(url_only_features)} URL structural features", "CV_used": "No", "Tuning_used": "No", **url_only_metrics},
+        {"Model_version": "RF URL-only with CV", "Features": f"{len(url_only_features)} URL structural features", "CV_used": "Yes", "Tuning_used": "No", **url_cv_metrics},
+        {"Model_version": "Tuned RF URL-only", "Features": f"{len(url_only_features)} URL structural features", "CV_used": "Yes", "Tuning_used": "Yes", **url_tuned_metrics},
+        {"Model_version": "RF without five proxy features", "Features": f"{len(proxy_reduced_features)} reduced features", "CV_used": "Yes", "Tuning_used": "Yes", **proxy_tuned_metrics},
     ])
     # Keep the six columns required by the assignment as the first columns,
     # while retaining the full metrics for transparent checking and discussion.

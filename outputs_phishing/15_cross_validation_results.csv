@@ -1,6 +1,16 @@
-Fold,F1_phishing
-1,1.0
-2,1.0
-3,0.9994141769185706
-Mean,0.9998047256395236
-Std,0.00027615964896955377
+Feature_set,Fold,F1_phishing
+All 50 features,1,1.0
+All 50 features,2,1.0
+All 50 features,3,0.9994141769185706
+All 50 features,Mean,0.9998047256395236
+All 50 features,Std,0.00027615964896955377
+18 URL structural features,1,0.9900234741784038
+18 URL structural features,2,0.9929577464788732
+18 URL structural features,3,0.9912023460410557
+18 URL structural features,Mean,0.9913945222327776
+18 URL structural features,Std,0.0012055945282512897
+45 features; five proxy features removed,1,0.9985384390529085
+45 features; five proxy features removed,2,0.9991210079109288
+45 features; five proxy features removed,3,0.9985358711566618
+45 features; five proxy features removed,Mean,0.998731772706833
+45 features; five proxy features removed,Std,0.000275232848818849
