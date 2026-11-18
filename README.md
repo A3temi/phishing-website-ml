@@ -5,6 +5,7 @@ Group project for the Machine Learning assignment. The project uses the UCI PhiU
 ## Repository contents
 
 - `Phishing_Website_Classification_and_Clustering.ipynb` — main analysis notebook
+- `generate_assignment_outputs.py` — executes the notebook and creates the curated report artifacts
 - `PhiUSIIL_Phishing_URL_Dataset.csv` — project dataset
 - `requirements.txt` — Python dependencies
 - `outputs_phishing/` — generated figures, tables, and trained models
@@ -24,7 +25,7 @@ pip install -r requirements.txt
 jupyter notebook
 ```
 
-Open the notebook and run all cells. Keep the CSV in the repository root. The notebook uses an offline labelled dataset and does not visit websites.
+Open the notebook and run all cells. The final notebook section creates the curated report artifacts in `outputs_phishing/`. Alternatively, run `python generate_assignment_outputs.py`. Keep the CSV in the repository root. The notebook uses an offline labelled dataset and does not visit websites.
 
 ## Collaboration workflow
 

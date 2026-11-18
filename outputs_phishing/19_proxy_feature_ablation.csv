@@ -1,0 +1,2 @@
+Model,Accuracy,Precision_phishing,Recall_phishing,F1_phishing,ROC_AUC_phishing,Specificity_legitimate,False_positive,False_negative,Predict_seconds
+Random Forest (without proxy features),0.9998088116582402,0.9998507536938461,0.9997015519299642,0.9997761472453675,0.9999988417662342,0.999888765294772,3,6,0.12

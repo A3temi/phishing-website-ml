@@ -1,5 +1,0 @@
-Model,Accuracy,Precision_phishing,Recall_phishing,F1_phishing,ROC_AUC_phishing,Specificity_legitimate,False_positive,False_negative,Predict_seconds
-Random Forest (baseline),0.9999575137018312,1.0,0.9999005173099881,0.9999502561806696,0.9999999999999999,1.0,0,2,0.129
-Logistic Regression (baseline),0.9998300548073247,1.0,0.9996020692399522,0.9998009950248756,0.9999884748363018,1.0,0,8,0.049
-Random Forest (tuned),1.0,1.0,1.0,1.0,1.0,1.0,0,0,0.145
-Random Forest (top 15 features),1.0,1.0,1.0,1.0,1.0,1.0,0,0,0.095

@@ -1,0 +1,51 @@
+Feature,Absolute_target_correlation,Univariate_ROC_AUC,Unique_values,Feature_provenance
+URLSimilarityIndex,0.8603423833311105,0.9960903302825308,36343,Precomputed similarity-based feature
+LineOfCode,0.27196969292185985,0.990282944631557,10738,Webpage-derived feature
+NoOfExternalRef,0.2583388957105198,0.9880330044613395,1191,Webpage-derived feature
+NoOfImage,0.2743647462309705,0.9796699373122574,992,Webpage-derived feature
+NoOfSelfRef,0.3158671094875583,0.9724566814669761,1374,Webpage-derived feature
+NoOfJS,0.3731616723460802,0.9708935070079044,253,Webpage-derived feature
+NoOfCSS,0.0680349224574497,0.9576874948082356,209,Webpage-derived feature
+HasSocialNet,0.7838816522164589,0.8947366748156158,2,URL or numeric website feature
+HasCopyrightInfo,0.7431971706670518,0.8754982220005102,2,URL or numeric website feature
+HasDescription,0.6900105110315277,0.8462862064244054,2,URL or numeric website feature
+NoOfOtherSpecialCharsInURL,0.3582676840366852,0.8231944666008909,74,URL or numeric website feature
+LargestLineLength,0.0409740597274978,0.8168684004835958,26178,Webpage-derived feature
+SpacialCharRatioInURL,0.5330027182175284,0.8071445683041436,240,URL or numeric website feature
+DomainTitleMatchScore,0.5842041471753441,0.7920085063786221,152,URL or numeric website feature
+HasSubmitButton,0.5788156779011797,0.7882456480288411,2,URL or numeric website feature
+URLTitleMatchScore,0.5388441829898294,0.7704926053782475,497,URL or numeric website feature
+IsResponsive,0.5489772580071162,0.7686613617347007,2,URL or numeric website feature
+URLCharProb,0.4695212948731702,0.7676411999464114,224279,Derived probability feature
+NoOfiFrame,0.2255671920069903,0.7546193927284461,119,URL or numeric website feature
+IsHTTPS,0.6102534884435628,0.7543871866295264,2,URL or numeric website feature
+HasHiddenFields,0.5077154887600666,0.7488730695304697,2,URL or numeric website feature
+NoOfEmptyRef,0.1091381996642673,0.7455206943176167,296,URL or numeric website feature
+CharContinuationRate,0.46716205446159415,0.7434735639044783,898,URL or numeric website feature
+NoOfLettersInURL,0.25762551004867495,0.7415844686975153,421,URL or numeric website feature
+HasFavicon,0.49360667836676403,0.7398085631394539,2,URL or numeric website feature
+URLLength,0.23306006233279783,0.7316841111426369,482,URL or numeric website feature
+NoOfDegitsInURL,0.17775462684681587,0.7276693448424884,182,URL or numeric website feature
+DegitRatioInURL,0.43189595937855674,0.7257887113815722,575,URL or numeric website feature
+LetterRatioInURL,0.36696955568138706,0.714592611265321,709,URL or numeric website feature
+Robots,0.3924614598000932,0.6754696320697077,2,URL or numeric website feature
+HasTitle,0.4603374776280145,0.6607579053880888,2,URL or numeric website feature
+Pay,0.35972379982911307,0.6546790017824997,2,URL or numeric website feature
+DomainLength,0.2826428100572403,0.6239842201346473,101,URL or numeric website feature
+TLDLegitimateProb,0.09722894444600719,0.6087604570065839,465,Derived legitimacy-probability feature
+Bank,0.18888609163131403,0.5636174270508225,2,URL or numeric website feature
+NoOfPopup,0.04735473750343916,0.5451860569384768,115,URL or numeric website feature
+HasPasswordField,0.1391617667036755,0.5425921913502513,2,URL or numeric website feature
+HasExternalFormSubmit,0.1673980729874163,0.5347255697883059,2,URL or numeric website feature
+NoOfQMarkInURL,0.1760265950725611,0.5304516514126542,5,URL or numeric website feature
+NoOfEqualsInURL,0.07716503312075541,0.5268354556307202,25,URL or numeric website feature
+TLDLength,0.0789733793701252,0.5260507891039269,12,URL or numeric website feature
+NoOfURLRedirect,0.04639793329060979,0.5159456229903353,2,URL or numeric website feature
+Crypto,0.09965611411169698,0.5152566535365746,2,URL or numeric website feature
+NoOfSelfRedirect,0.0767737544625907,0.5152320462331509,2,URL or numeric website feature
+NoOfSubDomain,0.006355634532981991,0.5144533303720911,10,URL or numeric website feature
+NoOfAmpersandInURL,0.03469769449593751,0.504392160764027,31,URL or numeric website feature
+IsDomainIP,0.060289237821016195,0.5031635495423796,2,URL or numeric website feature
+NoOfObfuscatedChar,0.015345199664198094,0.5024025069637883,20,URL or numeric website feature
+ObfuscationRatio,0.04195411378293763,0.5024025069637883,146,URL or numeric website feature
+HasObfuscation,0.05252224851445215,0.5024025069637883,2,URL or numeric website feature

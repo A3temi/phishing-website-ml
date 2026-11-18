@@ -1,0 +1,5 @@
+Model_version,False_positive,False_negative
+RF baseline,0.0,2.0
+RF tuned,0.0,0.0
+RF top 15,0.0,0.0
+RF without proxy features,3.0,6.0

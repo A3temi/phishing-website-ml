@@ -1,0 +1,20 @@
+Artifact,Report_section,Use
+01_dataset_summary.csv,4.1 Dataset acquisition,"Dataset size, labels, and cleaning counts"
+02_feature_audit.csv,3.5 Feature-engineering limitations,Feature strength and provenance
+03_similarity_feature_audit.csv,3.5 Feature-engineering limitations / 11 Discussion,Evidence for the similarity-feature concern
+04_eda_class_distribution.png,5.2 Class distribution,Class-count bar chart
+05_eda_feature_distributions.png,5.4 Feature distributions,Selected feature boxplots
+06_eda_correlation_heatmap.png,5.5 Correlation analysis,Correlation visualization
+07_baseline_model_results.csv,7 Supervised results,"Accuracy, precision, recall, F1, and ROC-AUC"
+08_supervised_confusion_matrices.png,7 Supervised results,False positives and false negatives
+09_supervised_roc_curves.png,7 Supervised results,ROC curves and AUC
+10_cluster_selection_scores.csv / 11_cluster_selection.png,8.2 Choosing K,Elbow and silhouette evidence
+12_cluster_profiles.csv / 13_cluster_feature_profiles.csv,8.4 Cluster interpretation,Cluster size and feature profiles
+14_cluster_pca_visualization.png,8.3 Cluster visualization,PCA cluster plot
+15_cross_validation_results.csv,9.1 Cross-validation,"Fold scores, mean, and standard deviation"
+16_hyperparameter_search_results.csv,9.2 Hyperparameter tuning,Search configurations and scores
+17_feature_importance.csv / 18_feature_importance.png,9.3 Feature selection,Top-feature ranking
+19_proxy_feature_ablation.csv,9.3 Feature selection / 11 Discussion,Full versus reduced feature set
+20_improvement_comparison.csv / 21_improvement_comparison.png,9.4 Improvement comparison,Baseline versus improved models and held-out errors
+21_improvement_error_counts.csv,9.4 Improvement comparison,Exact false-positive and false-negative counts
+22_paper_comparison.csv,10 Comparison with published paper,Paper versus reproduced metrics

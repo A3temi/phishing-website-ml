@@ -1,0 +1,4 @@
+Rule,Rows,Phishing_rate
+URLSimilarityIndex < 100,99734,1.0
+URLSimilarityIndex == 100,135636,0.005794921702202955
+80 <= URLSimilarityIndex < 100,7334,1.0
